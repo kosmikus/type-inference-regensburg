@@ -3,7 +3,7 @@
 import Control.Applicative hiding ((<|>))
 import Control.Monad.Identity
 import Control.Monad.State.Strict
-import Control.Monad.Error
+import Control.Monad.Except
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Set (Set)
@@ -60,7 +60,7 @@ infer gamma (App e1 e2) = do
   (s1, tau1) <- infer gamma e1
   (s2, tau2) <- infer (subst s1 gamma) e2
   tau3 <- fresh
-  s3 <- unify (subst s2 tau1) (Arr tau2 tau3) 
+  s3 <- unify (subst s2 tau1) (Arr tau2 tau3)
   return (s3 `comp` s2 `comp` s1, subst s3 tau3)
 
 infer gamma (Lam x e) = do
@@ -105,11 +105,11 @@ gen gamma tau = Forall xs tau
 
 -- The monad
 
-newtype Infer a = Infer (ErrorT String (State Int) a)
-  deriving (Monad, MonadState Int, MonadError String)
+newtype Infer a = Infer (ExceptT String (State Int) a)
+  deriving (Functor, Applicative, Monad, MonadState Int, MonadError String)
 
 runInfer :: Infer a -> Either String a
-runInfer (Infer i) = evalState (runErrorT i) 0
+runInfer (Infer i) = evalState (runExceptT i) 0
 
 fresh :: Infer MType
 fresh = do
